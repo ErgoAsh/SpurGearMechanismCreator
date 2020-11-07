@@ -117,24 +117,25 @@ namespace SpurGearMechanismCreator
             };
         }
 
-        public static PointCollection InvolutePoints(double StartAngle, double dTheta, double RMin, double RMax, Point Center)
+        public static PointCollection InvolutePoints(double StartAngle, double dTheta, double RMin, double RMax, Point Center, bool ReverseDirection)
 		{
             PointCollection Coll = new PointCollection();
             double Theta = 0;
             while (true)
 			{
+                int neg = ReverseDirection ? -1 : 1;
                 Point BasePoint = new Point
                 {
-                    X = RMin * (Math.Cos(Theta) + Theta * Math.Sin(Theta)),
-                    Y = RMin * (Math.Sin(Theta) + Theta * Math.Sin(Theta))
+                    X =       RMin * (Math.Cos(Theta) + Theta * Math.Sin(Theta)),
+                    Y = neg * RMin * (Math.Sin(Theta) - Theta * Math.Cos(Theta))
                 };
 
                 Point ActualPoint = RotatePointAAroundB(BasePoint, Center, StartAngle);
 
-                StartAngle += dTheta;
+                Theta += dTheta;
                 if (Distance(ActualPoint, Center) > RMax)
 				{
-                    Coll.Add(Cartesian(RMax, StartAngle + Theta)); //Small error for small dTheta
+                    //Coll.Add(Cartesian(RMax, StartAngle + Theta)); //Small error for small dTheta
                     return Coll;
                 } 
                 else
@@ -145,7 +146,9 @@ namespace SpurGearMechanismCreator
 		}
 
         public static CalculationsResultsData Calculate(double m, int z1, int z2, double x1, double x2)
-        {         
+        {
+            double dTheta = 0.001;
+
             double ha = 1; //Coefficient of a tool hight
             double c_star = 0.25f; //Coefficient of radial spacing
 
@@ -191,12 +194,13 @@ namespace SpurGearMechanismCreator
                 + Math.Sqrt(Math.Pow(d_a2 / 2, 2) - Math.Pow(d_b2 / 2, 2))
                 - a * Math.Sin(alpha_prime))/(Math.PI * m * Math.Cos(alpha));
 
+            // Thickness (arc length) of tooth at base circle
+            double s_1_angle = Radians(2 * (90 / z1 + (360 * x1 * Math.Tan(alpha)) / (Math.PI * z1)));
+
             // Tooth depth
             double h = (2.25 + y - (x1 + x2)) * m;
 
             double rho = 0.38 * m;
-
-            double dTheta = 0.01;
 
             PointCollection Dedendum1Points = new PointCollection();
             PointCollection Base1Points = new PointCollection();
@@ -350,6 +354,32 @@ namespace SpurGearMechanismCreator
             };
             GearElements.Add(Addendum2Polygon);
 
+            double[] ThetaRange = Generate.LinearRange(0, p / (d1 / 2), 2 * Math.PI);
+            foreach (double th in ThetaRange)
+			{
+                PointCollection Inv = InvolutePoints(th, dTheta, d_b1 / 2, d_a1 / 2, new Point(0, 0), false);
+                Polyline InvoluteLine = new Polyline
+                {
+                    Stroke = Brushes.Red,
+                    StrokeThickness = 1,
+                    Points = Inv
+                };
+                GearElements.Add(InvoluteLine);
+            }
+
+            double[] Theta2Range = Generate.LinearRange(0 + s_1_angle, p / (d1 / 2), 2 * Math.PI + s_1_angle);
+            foreach (double th in Theta2Range)
+            {
+                PointCollection Inv = InvolutePoints(th, dTheta, d_b1 / 2, d_a1 / 2, new Point(0, 0), true);
+                Polyline InvoluteLine = new Polyline
+                {
+                    Stroke = Brushes.Red,
+                    StrokeThickness = 1,
+                    Points = Inv
+                };
+                GearElements.Add(InvoluteLine);
+            }
+
             GearCharacteristicsData Pinion = new GearCharacteristicsData
             {
                 NumberOfTeeths = z1,
@@ -404,8 +434,6 @@ namespace SpurGearMechanismCreator
                 GearGeometry = GearElements,
                 ActionPosition = new Point(-Pinion.OperatingPitchDiameter, 0)
             };
-
-            Generate.LinearRange(10, 2, 15)
 
             return Result;
         }

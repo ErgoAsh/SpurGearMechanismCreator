@@ -29,22 +29,38 @@
 
             <TabControl Margin="5,5,0,5" Grid.Column="0">
                 <TabItem Header="View">
-					<Border ClipToBounds="True">
-						<Canvas x:Name="GearCanvas">
-							<Canvas.RenderTransform>
-								<TransformGroup>
-									<ScaleTransform ScaleX="7" ScaleY="7"/>
-									<TranslateTransform
+					<Grid>
+						<Grid Grid.ZIndex="2" >
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="3*"/>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="3*"/>
+							</Grid.ColumnDefinitions>
+
+							<Grid.RowDefinitions>
+								<RowDefinition Height="9*"/>
+								<RowDefinition Height="*"/>
+							</Grid.RowDefinitions>
+							<Slider Minimum="5" Maximum="15" Value="7" Grid.Column="1" Grid.Row="1" ValueChanged="OnSliderValueChanged"/>
+						</Grid>
+						
+						<Border Grid.ZIndex="1" ClipToBounds="True">
+							<Canvas x:Name="GearCanvas">
+								<Canvas.RenderTransform>
+									<TransformGroup>
+										<ScaleTransform x:Name="ScaleTransformation" ScaleX="7" ScaleY="7"/>
+										<TranslateTransform
                                         X="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Canvas}}"
                                         Y="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}"/>
-									<TranslateTransform x:Name="TranslateTransformObject"
+										<TranslateTransform x:Name="TranslateTransformObject"
 										X="{Binding Path=OriginPoint.X}"
 										Y="{Binding Path=OriginPoint.Y}"/>
-									<ScaleTransform ScaleX="0.5" ScaleY="0.5"/>
-								</TransformGroup>
-							</Canvas.RenderTransform>
-						</Canvas>
-					</Border>
+										<ScaleTransform ScaleX="0.5" ScaleY="0.5"/>
+									</TransformGroup>
+								</Canvas.RenderTransform>
+							</Canvas>
+						</Border>
+					</Grid>
 				</TabItem> 
 				<TabItem Header="Data">
 					<DataGrid x:Name="DataTable" GridLinesVisibility="All" AutoGenerateColumns="False" IsReadOnly="True">

@@ -33,10 +33,20 @@ namespace SpurGearMechanismCreator
             TranslateTransformObject.X = Data.ActionPosition.X;
             TranslateTransformObject.Y = Data.ActionPosition.Y;
 
+            GearCanvas.Children.Clear();
             foreach (UIElement Element in Data.GearGeometry)
 			{
                 GearCanvas.Children.Add(Element);
             }
         }
-    }
+
+		private void OnSliderValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+		{
+            if (ScaleTransformation != null)
+			{
+                ScaleTransformation.ScaleX = e.NewValue;
+                ScaleTransformation.ScaleY = e.NewValue;
+            }
+		}
+	}
 }
