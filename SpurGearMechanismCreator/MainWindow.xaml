@@ -32,23 +32,37 @@
 					<Grid>
 						<Grid Grid.ZIndex="2" >
 							<Grid.ColumnDefinitions>
-								<ColumnDefinition Width="3*"/>
+								<ColumnDefinition Width="2*"/>
 								<ColumnDefinition Width="*"/>
-								<ColumnDefinition Width="3*"/>
+								<ColumnDefinition Width="2*"/>
 							</Grid.ColumnDefinitions>
 
 							<Grid.RowDefinitions>
 								<RowDefinition Height="9*"/>
+								<RowDefinition Height="60"/>
 								<RowDefinition Height="*"/>
 							</Grid.RowDefinitions>
-							<Slider Minimum="5" Maximum="15" Value="7" Grid.Column="1" Grid.Row="1" ValueChanged="OnSliderValueChanged"/>
+
+							<Border Grid.Column="1" Grid.Row="1" BorderBrush="Gray" BorderThickness="1,1,1,1" Background="White">
+								<StackPanel Orientation="Vertical">
+									<Slider Minimum="2" Maximum="15" Value="7" Margin="5,5,5,0" ValueChanged="OnSliderValueChanged"/>
+									<StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+										<Button Margin="2,10,5,2" Height="22" Width="22" Click="OnStartButtonClick">
+											<TextBlock Text="&#9654;" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+										</Button>
+										<Button Margin="5,10,2,2" Height="22" Width="22" Click="OnStopButtonClick">
+											<TextBlock Text="&#9208;" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+										</Button>
+									</StackPanel>
+								</StackPanel>
+							</Border>
 						</Grid>
 						
 						<Border Grid.ZIndex="1" ClipToBounds="True">
 							<Canvas x:Name="GearCanvas">
 								<Canvas.RenderTransform>
 									<TransformGroup>
-										<ScaleTransform x:Name="ScaleTransformation" ScaleX="7" ScaleY="7"/>
+										<ScaleTransform x:Name="ScaleTransformation" ScaleX="7" ScaleY="-7"/>
 										<TranslateTransform
                                         X="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Canvas}}"
                                         Y="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}"/>

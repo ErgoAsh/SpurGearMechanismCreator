@@ -1,8 +1,10 @@
 ﻿using SpurGearMechanismCreator.Calculations;
+using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 
 namespace SpurGearMechanismCreator
@@ -44,9 +46,39 @@ namespace SpurGearMechanismCreator
 		{
             if (ScaleTransformation != null)
 			{
-                ScaleTransformation.ScaleX = e.NewValue;
-                ScaleTransformation.ScaleY = e.NewValue;
+                ScaleTransformation.ScaleX =  e.NewValue;
+                ScaleTransformation.ScaleY = -e.NewValue;
             }
+		}
+
+		private void OnStartButtonClick(object sender, RoutedEventArgs e)
+		{
+            /*
+            GearCanvas.BeginStoryboard(aa);
+
+            Storyboard storyboard = new Storyboard();
+            storyboard.RepeatBehavior = RepeatBehavior.Forever;
+            storyboard.Duration = new Duration(TimeSpan.FromSeconds(10.0));
+
+            DoubleAnimation rotateAnimation = new DoubleAnimation()
+            {
+                From = 0,
+                To = 360,
+                Duration = storyboard.Duration
+            };
+            
+            Storyboard.SetTarget(rotateAnimation, GearCanvas.Children[]);
+            Storyboard.SetTargetProperty(rotateAnimation, new PropertyPath("(UIElement.RenderTransform).(RotateTransform.Angle)"));
+
+            storyboard.Children.Add(rotateAnimation);
+
+            Resources.Add("Storyboard", storyboard);
+            */
+        }
+
+		private void OnStopButtonClick(object sender, RoutedEventArgs e)
+		{
+
 		}
 	}
 }

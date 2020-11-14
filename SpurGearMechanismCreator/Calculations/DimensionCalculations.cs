@@ -73,11 +73,10 @@ namespace SpurGearMechanismCreator
 
         public static double InverseInvolute(double Involute) {
             double Angle1 = 0;
-            double Angle2 = 0;
 
             while(true)
             {
-                Angle2 = Angle1;
+                double Angle2 = Angle1;
                 Angle1 = Math.Atan(Angle1 + Involute);
 
                 double Diff = Math.Abs(Angle1 - Angle2);
@@ -98,12 +97,7 @@ namespace SpurGearMechanismCreator
                 Y = Rho * Math.Sin(phi)
             };
 		}
-        /*
-        public static Point Polar(double X, double Y, Point Center)
-		{
 
-		}
-        */
         public static double Distance(Point A, Point B)
 		{
             return Math.Sqrt(Math.Pow(B.X - A.X, 2) + Math.Pow(B.Y - A.Y, 2));
@@ -117,7 +111,15 @@ namespace SpurGearMechanismCreator
             };
         }
 
-        public static PointCollection InvolutePoints(double StartAngle, double dTheta, double RMin, double RMax, Point Center, bool ReverseDirection)
+        public static Point TranslatePoint(Point P, double XOffset, double YOffset)
+		{
+            return new Point(P.X + XOffset, P.Y + YOffset);
+		}
+
+        public static PointCollection InvolutePoints(
+            double StartAngle, double dTheta, 
+            double BaseRadius, double DedendumRadius, double AddendumRadius,
+            Point Center, bool ReverseDirection)
 		{
             PointCollection Coll = new PointCollection();
             double Theta = 0;
@@ -126,22 +128,28 @@ namespace SpurGearMechanismCreator
                 int neg = ReverseDirection ? -1 : 1;
                 Point BasePoint = new Point
                 {
-                    X =       RMin * (Math.Cos(Theta) + Theta * Math.Sin(Theta)),
-                    Y = neg * RMin * (Math.Sin(Theta) - Theta * Math.Cos(Theta))
+                    X =       BaseRadius * (Math.Cos(Theta) + Theta * Math.Sin(Theta)),
+                    Y = neg * BaseRadius * (Math.Sin(Theta) - Theta * Math.Cos(Theta))
                 };
 
+                if (Center.X != 0 || Center.Y != 0)
+                {
+                    BasePoint = TranslatePoint(BasePoint, Center.X, Center.Y);
+                }
                 Point ActualPoint = RotatePointAAroundB(BasePoint, Center, StartAngle);
-
                 Theta += dTheta;
-                if (Distance(ActualPoint, Center) > RMax)
+
+                if (Distance(ActualPoint, Center) < DedendumRadius)
 				{
-                    //Coll.Add(Cartesian(RMax, StartAngle + Theta)); //Small error for small dTheta
-                    return Coll;
-                } 
-                else
-				{
-                    Coll.Add(ActualPoint);
+                    continue;
 				}
+
+                if (Distance(ActualPoint, Center) > AddendumRadius)
+				{
+                    return Coll;
+                }
+                 
+                Coll.Add(ActualPoint);
 			}
 		}
 
@@ -177,10 +185,6 @@ namespace SpurGearMechanismCreator
             double d_prime1 = d_b1 / Math.Cos(alpha_prime);
             double d_prime2 = d_b2 / Math.Cos(alpha_prime);
 
-            // Dedendum circle
-            double d_f1 = m * (z1 - 2 * ha - 2 * c_star + 2 * x1);
-            double d_f2 = m * (z2 - 2 * ha - 2 * c_star + 2 * x2);
-
             // Addendum
             double h_a1 = (1 + y - x1) * m;
             double h_a2 = (1 + y - x2) * m;
@@ -189,16 +193,29 @@ namespace SpurGearMechanismCreator
             double d_a1 = d1 + 2 * h_a1;
             double d_a2 = d2 + 2 * h_a1;
 
+            // Dedendum circle
+            //double d_f1 = m * (z1 - 2.5 + 2 * x1);
+            //double d_f2 = m * (z2 - 2.5 + 2 * x2);
+
+            double h = (2.25 + y - (x1 + x2)) * m;
+            double d_f1 = d_a1 - 2 * h;
+            double d_f2 = d_a2 - 2 * h;
+
             // Overlap coefficient
             double epsilon = (Math.Sqrt(Math.Pow(d_a1 / 2, 2) - Math.Pow(d_b1 / 2, 2))
                 + Math.Sqrt(Math.Pow(d_a2 / 2, 2) - Math.Pow(d_b2 / 2, 2))
                 - a * Math.Sin(alpha_prime))/(Math.PI * m * Math.Cos(alpha));
 
             // Thickness (arc length) of tooth at base circle
-            double s_1_angle = Radians(2 * (90 / z1 + (360 * x1 * Math.Tan(alpha)) / (Math.PI * z1)));
+            double s_1 = m * (Math.PI / 2 + 2 * x1 * Math.Tan(alpha));
+            double sw_1 = d_prime1 * (s_1 / d_prime1 + Involute(alpha) - Involute(alpha_prime));
+            double theta_b1 = 2 * (sw_1 / d1 + Involute(alpha_prime));
+            double sb_1 = d_b1 * theta_b1/2;
 
-            // Tooth depth
-            double h = (2.25 + y - (x1 + x2)) * m;
+            double s_2 = m * (Math.PI / 2 + 2 * x2 * Math.Tan(alpha));
+            double sw_2 = d_prime2 * (s_2 / d_prime2 + Involute(alpha) - Involute(alpha_prime));
+            double theta_b2 = 2 * (sw_2 / d2 + Involute(alpha_prime));
+            double sb_2 = d_b2 * theta_b2/2;
 
             double rho = 0.38 * m;
 
@@ -284,14 +301,15 @@ namespace SpurGearMechanismCreator
 			{
 				Stroke = Brushes.Black,
 				StrokeThickness = 0.5,
-				Points = Base1Points
+                StrokeDashArray = DoubleCollection.Parse("1,1"),
+                Points = Base1Points
             };
 			GearElements.Add(Base1Polygon);
 
 			Polygon RefPitch1Polygon = new Polygon
 			{
 				Stroke = Brushes.Black,
-				StrokeThickness = 1,
+				StrokeThickness = 0.5,
                 StrokeDashArray = DoubleCollection.Parse("3,1"),
                 Points = RefPitch1Points
             };
@@ -300,7 +318,7 @@ namespace SpurGearMechanismCreator
             Polygon WorkPitch1Polygon = new Polygon
             {
                 Stroke = Brushes.Black,
-                StrokeThickness = 0.5,
+                StrokeThickness = 1,
                 Points = WorkPitch1Points
             };
             GearElements.Add(WorkPitch1Polygon);
@@ -325,6 +343,7 @@ namespace SpurGearMechanismCreator
             {
                 Stroke = Brushes.Black,
                 StrokeThickness = 0.5,
+                StrokeDashArray = DoubleCollection.Parse("1,1"),
                 Points = Base2Points
             };
             GearElements.Add(Base2Polygon);
@@ -332,7 +351,7 @@ namespace SpurGearMechanismCreator
             Polygon RefPitch2Polygon = new Polygon
             {
                 Stroke = Brushes.Black,
-                StrokeThickness = 1,
+                StrokeThickness = 0.5,
                 StrokeDashArray = DoubleCollection.Parse("3,1"),
                 Points = RefPitch2Points
             };
@@ -341,7 +360,7 @@ namespace SpurGearMechanismCreator
             Polygon WorkPitch2Polygon = new Polygon
             {
                 Stroke = Brushes.Black,
-                StrokeThickness = 0.5,
+                StrokeThickness = 1,
                 Points = WorkPitch2Points
             };
             GearElements.Add(WorkPitch2Polygon);
@@ -354,10 +373,12 @@ namespace SpurGearMechanismCreator
             };
             GearElements.Add(Addendum2Polygon);
 
-            double[] ThetaRange = Generate.LinearRange(0, p / (d1 / 2), 2 * Math.PI);
-            foreach (double th in ThetaRange)
+            double spacing_1 = p / (d1 / 2);
+            double base_1 = Involute(alpha_prime);
+            double[] ThetaRange_1 = Generate.LinearRange(base_1, spacing_1, 2 * Math.PI + base_1 - dTheta);
+            foreach (double th in ThetaRange_1)
 			{
-                PointCollection Inv = InvolutePoints(th, dTheta, d_b1 / 2, d_a1 / 2, new Point(0, 0), false);
+                PointCollection Inv = InvolutePoints(th, dTheta, d_b1 / 2, d_f1 / 2, d_a1 / 2, new Point(0, 0), false);
                 Polyline InvoluteLine = new Polyline
                 {
                     Stroke = Brushes.Red,
@@ -367,10 +388,38 @@ namespace SpurGearMechanismCreator
                 GearElements.Add(InvoluteLine);
             }
 
-            double[] Theta2Range = Generate.LinearRange(0 + s_1_angle, p / (d1 / 2), 2 * Math.PI + s_1_angle);
-            foreach (double th in Theta2Range)
+            double[] Theta2Range_1 = Generate.LinearRange(0 + theta_b1, spacing_1, 2 * Math.PI + theta_b1 - dTheta);
+            foreach (double th in Theta2Range_1)
             {
-                PointCollection Inv = InvolutePoints(th, dTheta, d_b1 / 2, d_a1 / 2, new Point(0, 0), true);
+                PointCollection Inv = InvolutePoints(th, dTheta, d_b1 / 2, d_f1 / 2, d_a1 / 2, new Point(0, 0), true);
+                Polyline InvoluteLine = new Polyline
+                {
+                    Stroke = Brushes.Red,
+                    StrokeThickness = 1,
+                    Points = Inv
+                };
+                GearElements.Add(InvoluteLine);
+            }
+
+            double spacing_2 = p / (d2 / 2);
+            double startPosition = theta_b2 - Involute(alpha_prime);
+            double[] ThetaRange_2 = Generate.LinearRange(((double) 1/2) * Math.PI - startPosition, spacing_2, ((double) 5/2) * Math.PI - dTheta - startPosition);
+            foreach (double th in ThetaRange_2)
+            {
+                PointCollection Inv = InvolutePoints(th, dTheta, d_b2 / 2, d_f2 / 2, d_a2 / 2, new Point(a, 0), false);
+                Polyline InvoluteLine = new Polyline
+                {
+                    Stroke = Brushes.Red,
+                    StrokeThickness = 1,
+                    Points = Inv
+                };
+                GearElements.Add(InvoluteLine);
+            }
+
+            double[] Theta2Range_2 = Generate.LinearRange(((double) 1/2) * Math.PI + theta_b2 - startPosition, spacing_2, ((double) 5/2) * Math.PI + theta_b2 - dTheta - startPosition);
+            foreach (double th in Theta2Range_2)
+            {
+                PointCollection Inv = InvolutePoints(th, dTheta, d_b2 / 2, d_f2 / 2, d_a2 / 2, new Point(a, 0), true);
                 Polyline InvoluteLine = new Polyline
                 {
                     Stroke = Brushes.Red,
@@ -392,7 +441,7 @@ namespace SpurGearMechanismCreator
                 OperatingClearance = 0, //TODO
                 ThicknessReference = 0,
                 ThicknessOperating = 0,
-                ThinknessBase = 0,
+                ThinknessBase = Degrees(theta_b1),
                 ThicknessTip = 0,
             };
 
@@ -408,7 +457,7 @@ namespace SpurGearMechanismCreator
                 OperatingClearance = 0, //TODO
                 ThicknessReference = 0,
                 ThicknessOperating = 0,
-                ThinknessBase = 0,
+                ThinknessBase = Degrees(theta_b2),
                 ThicknessTip = 0,
             };
 

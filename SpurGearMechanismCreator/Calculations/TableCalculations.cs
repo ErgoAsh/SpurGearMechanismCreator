@@ -118,10 +118,10 @@ namespace SpurGearMechanismCreator.Calculations
 					AreValuesShared = true
 				},
 				new TableDataRow {
-					Name = "Tooth thickness at the reference pitch circle",
+					Name = "angle base",
 					Formula = "-",
-					Value = Data.GearData.ThicknessReference,
-					ValueSecondary = Data.PinionData.ThicknessReference,
+					Value = Data.GearData.ThinknessBase,
+					ValueSecondary = Data.PinionData.ThinknessBase,
 					AreValuesShared = false
 				},
 				new TableDataRow {
