@@ -118,7 +118,7 @@ namespace SpurGearMechanismCreator.Calculations
 					AreValuesShared = true
 				},
 				new TableDataRow {
-					Name = "angle base",
+					Name = "Tooth thickness at the base circle",
 					Formula = "-",
 					Value = Data.GearData.ThinknessBase,
 					ValueSecondary = Data.PinionData.ThinknessBase,
