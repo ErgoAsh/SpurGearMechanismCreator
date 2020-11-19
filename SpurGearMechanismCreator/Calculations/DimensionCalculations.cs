@@ -20,6 +20,17 @@ namespace SpurGearMechanismCreator
         Addendum
     }
 
+    public class PolarPoint { 
+        public double Rho { get; set; }
+        public double Theta { get; set; }
+
+        public PolarPoint(double Rho = 0, double Theta = 0)
+        {
+            this.Rho = Rho;
+            this.Theta = Theta;
+        }
+    }
+
     public class CalculationsResultsData
     {
         public GearCharacteristicsData PinionData { get; set; }
@@ -30,6 +41,8 @@ namespace SpurGearMechanismCreator
         public Point PinionPosition { get; set; }
         public Point GearPosition { get; set; }
         public Point ActionPosition { get; set; }
+		public PointCollection PinionPoints { get; set; }
+        public PointCollection GearPoints { get; set; }
     }
 
     public class GearCharacteristicsData
@@ -97,14 +110,23 @@ namespace SpurGearMechanismCreator
             return Angle1;
         }
 
-        public static Point Cartesian(double Rho, double phi)
+        public static Point Cartesian(double Rho, double Phi)
 		{
             return new Point
             {
-                X = Rho * Math.Cos(phi),
-                Y = Rho * Math.Sin(phi)
+                X = Rho * Math.Cos(Phi),
+                Y = Rho * Math.Sin(Phi)
             };
 		}
+
+        public static PolarPoint Polar(Point P)
+        {
+            return new PolarPoint
+            {
+                Rho = Math.Sqrt(Math.Pow(P.X, 2) + Math.Pow(P.Y, 2)),
+                Theta = Math.Atan(P.Y / P.X)
+            };
+        }
 
         public static double Distance(Point A, Point B)
 		{
@@ -124,133 +146,10 @@ namespace SpurGearMechanismCreator
             };
         }
 
-        public static SortedDictionary<double, CurveType> GenerateAngleData(
-            double dTheta, double Teeths, double InvoluteAngle, 
-            double ToothSpacingAngle, double TipAngle)
-		{
-            var GearAngleData = new SortedDictionary<double, CurveType>();
-
-            double[] RisingInvolute = Generate.LinearRange(0, dTheta, InvoluteAngle);
-            for (int j = 0; j < Teeths; j++)
-            {
-                foreach (var Item in RisingInvolute.Select(n => n + (j * ToothSpacingAngle)))
-                {
-                    if (!GearAngleData.ContainsKey(Item))
-                    {
-                        GearAngleData.Add(Item, CurveType.RisingInvolute);
-                    }
-                }
-            }
-
-            double[] Tip = Generate.LinearRange(InvoluteAngle, dTheta, InvoluteAngle + TipAngle);
-            for (int j = 0; j < Teeths; j++)
-            {
-                foreach (var Item in Tip.Select(n => n + (j * ToothSpacingAngle)))
-                {
-                    if (!GearAngleData.ContainsKey(Item))
-                    {
-                        GearAngleData.Add(Item, CurveType.Addendum);
-                    }
-                }
-            }
-
-            double[] ReturningInvolute = Generate.LinearRange(InvoluteAngle + TipAngle, dTheta, 2 * InvoluteAngle + TipAngle);
-            for (int j = 0; j < Teeths; j++)
-            {
-                foreach (var Item in ReturningInvolute.Select(n => n + (j * ToothSpacingAngle)))
-                {
-                    if (!GearAngleData.ContainsKey(Item))
-                    {
-                        GearAngleData.Add(Item, CurveType.ReturningInvolute);
-                    }
-                }
-            }
-
-            double[] Dwell = Generate.LinearRange(2 * InvoluteAngle + TipAngle, dTheta, ToothSpacingAngle);
-            for (int j = 0; j < Teeths; j++)
-            {
-                foreach (var Item in Dwell.Select(n => n + (j * ToothSpacingAngle)))
-                {
-                    if (!GearAngleData.ContainsKey(Item))
-                    {
-                        GearAngleData.Add(Item, CurveType.ReturningInvolute);
-                    }
-                }
-            }
-
-            return GearAngleData;
-        }
-
-        public static PointCollection GenerateGearProfile(
-            double BaseRadius, double DedendumRadius, double AddendumRadius, double StartAngleOffset,
-            SortedDictionary<double, CurveType> AngleCollection, Point Center)
-		{
-            var Result = new PointCollection();
-            //TODO StartAngleOffset
-            double? InvoluteStartAngle = null;
-            foreach (var Data in AngleCollection)
-            {
-                var Theta = Data.Key;
-                switch (Data.Value)
-                {
-                    case CurveType.Dedendum:
-                        InvoluteStartAngle = null;
-                        Result.Add(TranslatePoint(new Point
-                        {
-                            X = DedendumRadius * Math.Cos(Data.Key),
-                            Y = DedendumRadius * Math.Sin(Data.Key),
-                        }, Center.X, Center.Y));
-                        break;
-
-                    case CurveType.RisingInvolute:
-                        if (InvoluteStartAngle == null) InvoluteStartAngle = Theta;
-                        var RisingThetaInv = Theta - InvoluteStartAngle ?? throw new ArgumentException("Invalid theta value");
-
-                        var RisingInvolutePoint = new Point
-                        {
-                            X = BaseRadius * (Math.Cos(RisingThetaInv) + RisingThetaInv * Math.Sin(RisingThetaInv)),
-                            Y = BaseRadius * (Math.Sin(RisingThetaInv) - RisingThetaInv * Math.Cos(RisingThetaInv))
-                        };
-                        var RisingTranslatedPoint = TranslatePoint(RisingInvolutePoint, Center.X, Center.Y);
-                        var RisingRotatedPoint = RotatePointAAroundB(RisingTranslatedPoint, Center, 
-                            InvoluteStartAngle ?? throw new ArgumentException("Invalid theta value"));
-
-                        Result.Add(RisingRotatedPoint);
-                        break;
-
-					case CurveType.ReturningInvolute:
-                        if (InvoluteStartAngle == null) InvoluteStartAngle = Theta;
-                        var ReturningThetaInv = Theta - InvoluteStartAngle ?? throw new ArgumentException("Invalid theta value");
-
-                        var ReturningInvolutePoint = new Point
-                        {
-                            X =  BaseRadius * (Math.Cos(ReturningThetaInv) + ReturningThetaInv * Math.Sin(ReturningThetaInv)),
-                            Y = -BaseRadius * (Math.Sin(ReturningThetaInv) - ReturningThetaInv * Math.Cos(ReturningThetaInv))
-                        };
-                        var ReturningTranslatedPoint = TranslatePoint(ReturningInvolutePoint, Center.X, Center.Y);
-                        var ReturningRotatedPoint = RotatePointAAroundB(ReturningTranslatedPoint, Center,
-                                InvoluteStartAngle ?? throw new ArgumentException("Invalid theta value"));
-
-                        Result.Add(ReturningRotatedPoint);
-                        break;
-
-                    case CurveType.Addendum:
-                        InvoluteStartAngle = null;
-                        Result.Add(TranslatePoint(new Point
-                        {
-                            X = AddendumRadius * Math.Cos(Data.Key),
-                            Y = AddendumRadius * Math.Sin(Data.Key),
-                        }, Center.X, Center.Y));
-                        break;
-				}
-			}
-            return Result;
-		}
-
-        public static UIElement[] GenerateGearCirclesGeometry(
-            Point Center, double DedendumDiameter, double BaseDiameter, double ReferencePitchDiameter, 
-                          double WorkingPitchDiameter, double AddendumDiameter)
-		{
+        public static UIElement[] GenerateGearCirclesGeometry(Point Center, 
+            double DedendumDiameter, double BaseDiameter, double ReferencePitchDiameter,
+            double WorkingPitchDiameter, double AddendumDiameter)
+        {
             var Elements = new List<UIElement>();
 
             EllipseGeometry DedendumGeometry = new EllipseGeometry
@@ -333,9 +232,161 @@ namespace SpurGearMechanismCreator
             return Elements.ToArray();
         }
 
+        public static SortedDictionary<double, CurveType> GenerateAngleData(
+            double dTheta, double Teeths, double InvoluteAngle, 
+            double ToothSpacingAngle, double TipAngle, double StartAngleOffset)
+		{
+            var GearAngleData = new SortedDictionary<double, CurveType>();
+
+            double[] RisingInvolute = Generate.LinearRange(StartAngleOffset, dTheta, InvoluteAngle + StartAngleOffset);
+            for (int j = 0; j < Teeths; j++)
+            {
+                GearAngleData.Add(RisingInvolute.Select(n => n + (j * ToothSpacingAngle)).First(), CurveType.RisingInvolute);
+                GearAngleData.Add(RisingInvolute.Select(n => n + (j * ToothSpacingAngle)).Last(), CurveType.RisingInvolute);
+            }
+
+            double[] Tip = Generate.LinearRange(StartAngleOffset + InvoluteAngle, dTheta, StartAngleOffset + InvoluteAngle + TipAngle);
+            for (int j = 0; j < Teeths; j++)
+            {
+                foreach (var Item in Tip.Select(n => n + (j * ToothSpacingAngle)))
+                {
+                    if (!GearAngleData.ContainsKey(Item))
+                    {
+                        GearAngleData.Add(Item, CurveType.Addendum);
+                    }
+                }
+            }
+
+            double[] ReturningInvolute = Generate.LinearRange(StartAngleOffset + InvoluteAngle + TipAngle, dTheta, StartAngleOffset + 2 * InvoluteAngle + TipAngle);
+            for (int j = 0; j < Teeths; j++)
+            {
+                GearAngleData.Add(ReturningInvolute.Select(n => n + (j * ToothSpacingAngle)).First(), CurveType.ReturningInvolute);
+                GearAngleData.Add(ReturningInvolute.Select(n => n + (j * ToothSpacingAngle)).Last(), CurveType.ReturningInvolute);
+            }
+
+            double[] Dwell = Generate.LinearRange(StartAngleOffset + 2 * InvoluteAngle + TipAngle, dTheta, StartAngleOffset + ToothSpacingAngle);
+            for (int j = 0; j < Teeths; j++)
+            {
+                foreach (var Item in Dwell.Select(n => n + (j * ToothSpacingAngle)))
+                {
+                    if (!GearAngleData.ContainsKey(Item))
+                    {
+                        GearAngleData.Add(Item, CurveType.Dedendum);
+                    }
+                }
+            }
+
+            return GearAngleData;
+        }
+
+        public static Point[] GenerateInvoluteProfile(double dTheta, double BaseRadius, double InvoluteAngle, bool IsDirectionInverted)
+		{
+            double Alpha = InverseInvolute(InvoluteAngle);
+            var NegateDirection = IsDirectionInverted ? -1 : 1;
+
+            var List = new List<Point>();
+            for (double i = 0; i < Alpha; i += dTheta)
+			{
+                var InvolutePoint = new Point
+                {
+                    X =                   BaseRadius * (Math.Cos(i) + i * Math.Sin(i)),
+                    Y = NegateDirection * BaseRadius * (Math.Sin(i) - i * Math.Cos(i))
+                };
+                List.Add(InvolutePoint);
+            }
+            return List.ToArray();
+        }
+
+        public static PointCollection GenerateGearProfile(double dTheta,
+            double BaseRadius, double DedendumRadius, double AddendumRadius,
+            SortedDictionary<double, CurveType> AngleCollection, Point Center)
+		{
+            var Result = new PointCollection();
+
+            double? InvoluteMaxAngle = null;
+            for (int i = 1; i < AngleCollection.Count; i++)
+            {
+                var Data = AngleCollection.ElementAt(i);
+                var Theta = Data.Key;
+                switch (Data.Value)
+                {
+                    case CurveType.Dedendum:
+                        Result.Add(TranslatePoint(new Point
+                        {
+                            X = DedendumRadius * Math.Cos(Theta),
+                            Y = DedendumRadius * Math.Sin(Theta),
+                        }, Center.X, Center.Y));
+                        break;
+
+                    case CurveType.RisingInvolute:
+                        if (AngleCollection.ElementAt(i - 1).Value != CurveType.RisingInvolute)
+                            continue;
+                        
+                        var RisingInvAlpha = AngleCollection.ElementAt(i).Key - AngleCollection.ElementAt(i - 1).Key;
+                        var RisingInvolute = GenerateInvoluteProfile(dTheta, BaseRadius, RisingInvAlpha, false);
+
+                        foreach (var Item in RisingInvolute)
+						{
+                            var RaisingClampedPoint = Item;
+
+                            if (DedendumRadius > BaseRadius)
+                            {
+                                PolarPoint RaisingPolarPoint = Polar(Item);
+                                if (RaisingPolarPoint.Rho < DedendumRadius)
+                                    RaisingClampedPoint = Cartesian(DedendumRadius, RaisingPolarPoint.Theta);
+                            }
+
+                            var RisingTranslatedPoint = TranslatePoint(RaisingClampedPoint, Center.X, Center.Y);
+                            var RisingRotatedPoint = RotatePointAAroundB(RisingTranslatedPoint, Center,
+                                    AngleCollection.ElementAt(i - 1).Key);
+
+                            Result.Add(RisingRotatedPoint);
+                        }
+                        break;
+
+					case CurveType.ReturningInvolute:
+                        if (AngleCollection.ElementAt(i - 1).Value != CurveType.ReturningInvolute)
+                            continue;
+
+                        var ReturningInvAlpha = AngleCollection.ElementAt(i).Key - AngleCollection.ElementAt(i - 1).Key;
+                        var ReturningInvolute = GenerateInvoluteProfile(dTheta, BaseRadius, ReturningInvAlpha, true);
+
+                        foreach (var Item in ReturningInvolute.Reverse())
+                        {
+                            var ReturningClampedPoint = Item;
+                            
+                            if (DedendumRadius > BaseRadius)
+							{
+                                PolarPoint ReturningPolarPoint = Polar(Item);
+                                if (ReturningPolarPoint.Rho < DedendumRadius)
+                                    ReturningClampedPoint = Cartesian(DedendumRadius, ReturningPolarPoint.Theta);
+                            }
+
+                            var ReturningTranslatedPoint = TranslatePoint(ReturningClampedPoint, Center.X, Center.Y);
+                            var ReturningRotatedPoint = RotatePointAAroundB(ReturningTranslatedPoint, Center,
+                                    AngleCollection.ElementAt(i).Key);
+
+                            Result.Add(ReturningRotatedPoint);
+                        }
+                        break;
+
+                    case CurveType.Addendum:
+                        if (InvoluteMaxAngle == null) InvoluteMaxAngle = Theta - AngleCollection.ElementAt(i - 1).Key;
+                        
+                        Result.Add(TranslatePoint(new Point
+                        {
+                            X = AddendumRadius * Math.Cos(Theta),
+                            Y = AddendumRadius * Math.Sin(Theta),
+                        }, Center.X, Center.Y));
+                        break;
+				}
+			}
+            return Result;
+		}
+
         public static CalculationsResultsData Calculate(double m, int z1, int z2, double x1, double x2)
         {
-            double dTheta = 0.001;
+            double dTheta = 0.01;
             double alpha = Radians(20);
 
             double i = (double) z2 / z1;
@@ -371,9 +422,6 @@ namespace SpurGearMechanismCreator
             double d_f1 = d_a1 - 2 * h;
             double d_f2 = d_a2 - 2 * h;
 
-            //double d_f1 = m * (z1 - 2.5 + 2 * x1);
-            //double d_f2 = m * (z2 - 2.5 + 2 * x2);
-
             // Overlap coefficient
             double epsilon = (Math.Sqrt(Math.Pow(d_a1 / 2, 2) - Math.Pow(d_b1 / 2, 2))
                 + Math.Sqrt(Math.Pow(d_a2 / 2, 2) - Math.Pow(d_b2 / 2, 2))
@@ -401,14 +449,14 @@ namespace SpurGearMechanismCreator
             double sb_1 = d_b1 * theta_b1 / 2;
             double sb_2 = d_b2 * theta_b2 / 2;
 
-            double alpha_a1 = Math.Acos(d1 / d_a1 * Math.Cos(alpha)); //p1 / d1;
-            double alpha_a2 = Math.Acos(d2 / d_a2 * Math.Cos(alpha)); //p2 / d2;
+            double alpha_a1 = Math.Acos(d1 / d_a1 * Math.Cos(alpha));
+            double alpha_a2 = Math.Acos(d2 / d_a2 * Math.Cos(alpha));
 
             double tip_angle1 = theta_b1 - 2 * Involute(alpha_a1);
             double tip_angle2 = theta_b2 - 2 * Involute(alpha_a2);
 
-            double sa_1 = d_a1 * Involute(alpha_a1);
-            double sa_2 = d_a2 * Involute(alpha_a2);
+            double sa_1 = d_a1 * Involute(alpha_a1) / 2;
+            double sa_2 = d_a2 * Involute(alpha_a2) / 2;
 
             double rho = 0.38 * m;
 
@@ -416,82 +464,25 @@ namespace SpurGearMechanismCreator
             GearElements.AddRange(GenerateGearCirclesGeometry(new Point(0, 0), d_f1, d_b1, d1, d_prime1, d_a1));
             GearElements.AddRange(GenerateGearCirclesGeometry(new Point(a, 0), d_f2, d_b2, d2, d_prime2, d_a2));
             
-            var Data1 = GenerateAngleData(dTheta, z1, Involute(alpha_a1), 2 * Math.PI / z1, tip_angle1);
-            Polyline InvoluteLine1 = new Polyline
+            var Data1 = GenerateAngleData(dTheta, z1, Involute(alpha_a1), 2 * Math.PI / z1, tip_angle1, Involute(alpha_prime));
+            var Points1 = GenerateGearProfile(dTheta, d_b1 / 2, d_f1 / 2, d_a1 / 2, Data1, new Point(0, 0));
+            Polygon InvoluteLine1 = new Polygon
             {
-                Stroke = Brushes.Red,
-                StrokeThickness = 1,
-                Points = GenerateGearProfile(d_b1 / 2, d_f1 / 2, d_a1 / 2, Involute(alpha_prime), Data1, new Point(0, 0))
+                Stroke = Brushes.DarkOrange,
+                StrokeThickness = 0.75,
+                Points = Points1
             };
             GearElements.Add(InvoluteLine1);
 
-            var Data2 = GenerateAngleData(dTheta, z1, Involute(alpha_a2), 2 * Math.PI / z1, tip_angle2);
-            Polyline InvoluteLine2 = new Polyline
+			var Data2 = GenerateAngleData(dTheta, z2, Involute(alpha_a2), 2 * Math.PI / z2, tip_angle2, (double) 1 / 2 * Math.PI - theta_b2 + Involute(alpha_prime));
+            var Points2 = GenerateGearProfile(dTheta, d_b2 / 2, d_f2 / 2, d_a2 / 2, Data2, new Point(a, 0));
+            Polygon InvoluteLine2 = new Polygon
             {
                 Stroke = Brushes.Red,
-                StrokeThickness = 1,
-                Points = GenerateGearProfile(d_b2 / 2, d_f2 / 2, d_a2 / 2, theta_b2 - Involute(alpha_prime), Data2, new Point(a, 0))
+                StrokeThickness = 0.75,
+                Points = Points2
             };
             GearElements.Add(InvoluteLine2);
-
-
-            /*
-            double spacing_1 = p / (d1 / 2);
-            double base_1 = Involute(alpha_prime);
-            double[] ThetaRange_1 = Generate.LinearRange(base_1, spacing_1, 2 * Math.PI + base_1 - dTheta);
-            foreach (double th in ThetaRange_1)
-			{
-                PointCollection Inv = InvolutePoints(th, dTheta, d_b1 / 2, d_f1 / 2, d_a1 / 2, new Point(0, 0), false);
-                Polyline InvoluteLine = new Polyline
-                {
-                    Stroke = Brushes.Red,
-                    StrokeThickness = 1,
-                    Points = Inv
-                };
-                GearElements.Add(InvoluteLine);
-            }
-
-            double[] Theta2Range_1 = Generate.LinearRange(0 + theta_b1, spacing_1, 2 * Math.PI + theta_b1 - dTheta);
-            foreach (double th in Theta2Range_1)
-            {
-                PointCollection Inv = InvolutePoints(th, dTheta, d_b1 / 2, d_f1 / 2, d_a1 / 2, new Point(0, 0), true);
-                Polyline InvoluteLine = new Polyline
-                {
-                    Stroke = Brushes.Red,
-                    StrokeThickness = 1,
-                    Points = Inv
-                };
-                GearElements.Add(InvoluteLine);
-            }
-
-            double spacing_2 = p / (d2 / 2);
-            double startPosition = theta_b2 - Involute(alpha_prime);
-            double[] ThetaRange_2 = Generate.LinearRange(((double) 1/2) * Math.PI - startPosition, spacing_2, ((double) 5/2) * Math.PI - dTheta - startPosition);
-            foreach (double th in ThetaRange_2)
-            {
-                PointCollection Inv = InvolutePoints(th, dTheta, d_b2 / 2, d_f2 / 2, d_a2 / 2, new Point(a, 0), false);
-                Polyline InvoluteLine = new Polyline
-                {
-                    Stroke = Brushes.Red,
-                    StrokeThickness = 1,
-                    Points = Inv
-                };
-                GearElements.Add(InvoluteLine);
-            }
-
-            double[] Theta2Range_2 = Generate.LinearRange(((double) 1/2) * Math.PI + theta_b2 - startPosition, spacing_2, ((double) 5/2) * Math.PI + theta_b2 - dTheta - startPosition);
-            foreach (double th in Theta2Range_2)
-            {
-                PointCollection Inv = InvolutePoints(th, dTheta, d_b2 / 2, d_f2 / 2, d_a2 / 2, new Point(a, 0), true);
-                Polyline InvoluteLine = new Polyline
-                {
-                    Stroke = Brushes.Red,
-                    StrokeThickness = 1,
-                    Points = Inv
-                };
-                GearElements.Add(InvoluteLine);
-            }
-            */
 
             GearCharacteristicsData Pinion = new GearCharacteristicsData
             {
@@ -542,8 +533,12 @@ namespace SpurGearMechanismCreator
                 PinionData = Pinion,
                 MechanismData = MechanismData,
                 GearGeometry = GearElements,
-                ActionPosition = new Point(-Pinion.OperatingPitchDiameter, 0)
-            };
+                PinionPoints = Points1,
+                GearPoints = Points2,
+                ActionPosition = new Point(Pinion.OperatingPitchDiameter, 0), //what / 2 
+                GearPosition = new Point(Pinion.OperatingPitchDiameter / 2 + Gear.OperatingPitchDiameter / 2, 0),
+                PinionPosition = new Point(0, 0)
+    };
 
             return Result;
         }

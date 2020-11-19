@@ -15,7 +15,7 @@ namespace SpurGearMechanismCreator.Calculations
 		public bool AreValuesShared { get; set; }
 	}
 
-	public static class TableCalculations
+	public static class TableDataVisualisation
 	{
 		public static List<TableDataRow> GetTableData(CalculationsResultsData Data)
 		{
@@ -125,6 +125,13 @@ namespace SpurGearMechanismCreator.Calculations
 					AreValuesShared = false
 				},
 				new TableDataRow {
+					Name = "Tooth thickness at the reference pitch circle",
+					Formula = "-",
+					Value = Data.GearData.ThicknessReference,
+					ValueSecondary = Data.PinionData.ThicknessReference,
+					AreValuesShared = false
+				},
+				new TableDataRow {
 					Name = "Tooth thickness at the operating pitch circle",
 					Formula = "-",
 					Value = Data.GearData.ThicknessOperating,
@@ -140,7 +147,7 @@ namespace SpurGearMechanismCreator.Calculations
 				},
 				new TableDataRow {
 					Name = "Contact Ratio",
-					Formula = @"\epsilon = \frac{\sqrt{\frac{d_{a1}}{2}^2 - \frac{d_{b1}}{2}^2} + \sqrt{\frac{d_{a2}}{2}^2 - \frac{d_{b2}}{2}^2} + a \sin{\alpha}}{\pi m \cos{\alpha}}",
+					Formula = @"\epsilon = \frac{\sqrt{(\frac{d_{a1}}{2}^2) - (\frac{d_{b1}}{2}^2)} + \sqrt{(\frac{d_{a2}}{2}^2) - (\frac{d_{b2}}{2}^2)} + a \sin{\alpha}}{\pi m \cos{\alpha}}",
 					Value = Data.MechanismData.ContactRatio,
 					AreValuesShared = true
 				},
