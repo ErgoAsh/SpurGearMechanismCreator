@@ -8,13 +8,12 @@ namespace SpurGearMechanismCreator.Calculations
 {
 	public static class ExportData
 	{
-		public static string GenerateExportData(PointCollection Points)
+		public static string GenerateTxtData(PointCollection Points)
 		{
-			for (int i = 0; i < 50; i++) 
-				Points.RemoveAt(Points.Count - 1);
+			//Points.RemoveAt(Points.Count - 1);
 
 			var Builder = new StringBuilder();
-			foreach (Point Item in Points)
+			foreach (var Item in Points)
 			{
 				Builder.Append(Item.X).Append(" ")
 					   .Append(Item.Y).Append(" ")

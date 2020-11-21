@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Windows.Controls;
+﻿using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace SpurGearMechanismCreator.Calculations
 {
@@ -11,15 +9,15 @@ namespace SpurGearMechanismCreator.Calculations
 		public string Formula { get; set; }
 		public double Value { get; set; }
 		public double ValueSecondary { get; set; }
-		public double SharedValue { get; set; }
 		public bool AreValuesShared { get; set; }
 	}
 
+	[SuppressMessage("ReSharper", "StringLiteralTypo")]
 	public static class TableDataVisualisation
 	{
 		public static List<TableDataRow> GetTableData(CalculationsResultsData Data)
 		{
-			List<TableDataRow> Result = new List<TableDataRow> {
+			var Result = new List<TableDataRow> {
 				new TableDataRow { 
 					Name = "Module",
 					Formula = "m",
@@ -29,8 +27,8 @@ namespace SpurGearMechanismCreator.Calculations
 				new TableDataRow {
 					Name = "Number of teeth",
 					Formula = "z",
-					Value = Data.GearData.NumberOfTeeths,
-					ValueSecondary = Data.PinionData.NumberOfTeeths,
+					Value = Data.GearData.NumberOfTeeth,
+					ValueSecondary = Data.PinionData.NumberOfTeeth,
 					AreValuesShared = false
 				},
 				new TableDataRow {
@@ -48,7 +46,7 @@ namespace SpurGearMechanismCreator.Calculations
 				},
 				new TableDataRow {
 					Name = "Operating pressure angle",
-					Formula = @"\alpha' = inverseInvolute(2\tan{\alpha}\frac{x_1+x_2}{z_1+z_2}+inv{\alpha})",
+					Formula = @"\alpha' = inverseInvolute \left(2\tan{\alpha}\frac{x_1+x_2}{z_1+z_2}+inv{\alpha} \right)",
 					Value = Data.MechanismData.OperatingPressureAngle,
 					AreValuesShared = true
 				},
@@ -60,18 +58,18 @@ namespace SpurGearMechanismCreator.Calculations
 				},
 				new TableDataRow {
 					Name = "Center distance modification coefficient",
-					Formula = @"y = \frac{z_1+z_2}{2}(\frac{\cos{\alpha}}{\cos{\alpha'}}-1)",
+					Formula = @"y = \frac{z_1+z_2}{2} \left( \frac{\cos{\alpha}}{\cos{\alpha'}}-1 \right)",
 					Value = Data.MechanismData.CenterDistanceCoefficient,
 					AreValuesShared = true
 				},
 				new TableDataRow {
 					Name = "Center distance",
-					Formula = @"a = (\frac{z_1+z_2}{2}+y)m",
+					Formula = @"a = \left(\frac{z_1+z_2}{2} + y \right) m",
 					Value = Data.MechanismData.CenterDistance,
 					AreValuesShared = true
 				},
 				new TableDataRow {
-					Name = "Pitch circle diameter",
+					Name = "Reference pitch circle diameter",
 					Formula = "d = zm",
 					Value = Data.GearData.ReferencePitchDiameter,
 					ValueSecondary = Data.PinionData.ReferencePitchDiameter,
@@ -118,36 +116,43 @@ namespace SpurGearMechanismCreator.Calculations
 					AreValuesShared = true
 				},
 				new TableDataRow {
-					Name = "Tooth thickness at the base circle",
-					Formula = "-",
-					Value = Data.GearData.ThinknessBase,
-					ValueSecondary = Data.PinionData.ThinknessBase,
-					AreValuesShared = false
-				},
-				new TableDataRow {
 					Name = "Tooth thickness at the reference pitch circle",
-					Formula = "-",
+					Formula = @"s = m \left(\frac{1}{2} \pi + 2x + \tan{\alpha'} \right)",
 					Value = Data.GearData.ThicknessReference,
 					ValueSecondary = Data.PinionData.ThicknessReference,
 					AreValuesShared = false
 				},
 				new TableDataRow {
 					Name = "Tooth thickness at the operating pitch circle",
-					Formula = "-",
+					Formula = @"s_w = d' \left(\frac{s}{d} + inv(\alpha) - inv(\alpha') \right)",
 					Value = Data.GearData.ThicknessOperating,
 					ValueSecondary = Data.PinionData.ThicknessOperating,
 					AreValuesShared = false
 				},
 				new TableDataRow {
+					Name = "Tooth thickness at the base circle",
+					Formula = @"s = d_b \left(\frac{s_w}{d_w} + inv(\alpha') \right)",
+					Value = Data.GearData.ThicknessBase,
+					ValueSecondary = Data.PinionData.ThicknessBase,
+					AreValuesShared = false
+				},
+				new TableDataRow {
 					Name = "Tooth thickness at the addendum pitch circle",
-					Formula = "-",
+					Formula = @"s = d_a \left(\frac{s_b}{d_b} + inv(\alpha_a) \right)",
 					Value = Data.GearData.ThicknessTip,
 					ValueSecondary = Data.PinionData.ThicknessTip,
 					AreValuesShared = false
 				},
 				new TableDataRow {
+					Name = "Angle of tooth tip",
+					Formula = @"\alpha_a = \arccos{\left(\frac{d}{d_a} \cos{\alpha} \right)}",
+					Value = Data.GearData.AngleTip,
+					ValueSecondary = Data.PinionData.AngleTip,
+					AreValuesShared = false
+				},
+				new TableDataRow {
 					Name = "Contact Ratio",
-					Formula = @"\epsilon = \frac{\sqrt{(\frac{d_{a1}}{2}^2) - (\frac{d_{b1}}{2}^2)} + \sqrt{(\frac{d_{a2}}{2}^2) - (\frac{d_{b2}}{2}^2)} + a \sin{\alpha}}{\pi m \cos{\alpha}}",
+					Formula = @"\epsilon = \frac{\sqrt{(\frac{d_{a1}}{2})^2 - (\frac{d_{b1}}{2})^2} + \sqrt{(\frac{d_{a2}}{2})^2 - (\frac{d_{b2}}{2})^2} + a \sin{\alpha}}{\pi m \cos{\alpha}}",
 					Value = Data.MechanismData.ContactRatio,
 					AreValuesShared = true
 				},

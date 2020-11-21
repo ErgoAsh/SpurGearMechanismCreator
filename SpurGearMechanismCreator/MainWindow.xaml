@@ -4,13 +4,9 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 		xmlns:controls="clr-namespace:WpfMath.Controls;assembly=WpfMath"
-		xmlns:table="clr-namespace:SpurGearMechanismCreator.Calculations"
-        xmlns:local="clr-namespace:SpurGearMechanismCreator"
         mc:Ignorable="d"
         Title="SpurGearMechanismCreator" Height="1080" Width="1920" WindowState="Maximized">
 	<Window.Resources>
-		<BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-
 		<Style x:Key="CollapsibleColumnStyle" TargetType="TextBlock">
 			<Setter Property="Visibility" Value="Visible"/>
 			<Style.Triggers>
