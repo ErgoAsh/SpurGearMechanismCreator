@@ -107,7 +107,7 @@
 
 				<StackPanel Grid.Row="4">
 					<TextBlock Text="x2"/>
-					<TextBox x:Name="X2TextBox" Text="0.6032"/>
+					<TextBox x:Name="X2TextBox" Text="0.655"/>
 				</StackPanel>
 
 				<StackPanel Grid.Row="5" Margin="0,25,0,0">
