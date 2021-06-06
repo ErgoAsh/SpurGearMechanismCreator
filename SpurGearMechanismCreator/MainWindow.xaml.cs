@@ -1,17 +1,17 @@
-﻿using Ookii.Dialogs.Wpf;
-using SpurGearMechanismCreator.Calculations;
+﻿using SpurGearMechanismCreator.Calculations;
 using System;
 using System.Globalization;
 using System.IO;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Forms;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 
 namespace SpurGearMechanismCreator
 {
-	public partial class MainWindow : Window
+    public partial class MainWindow : Window
     {
         public Point OriginPoint { get; set; }
         public Point GearPosition { get; set; }
@@ -19,20 +19,20 @@ namespace SpurGearMechanismCreator
 
         public double GearRatio { get; set; }
 
-        public PointCollection PinionPointData { get; set; }
-        public PointCollection GearPointData { get; set; }
+        public PointCollection? PinionPointData { get; set; }
+        public PointCollection? GearPointData { get; set; }
 
         public MainWindow()
         {
             InitializeComponent();
 
-			var CustomCulture = (CultureInfo) Thread.CurrentThread.CurrentCulture.Clone();
+            CultureInfo CustomCulture = (CultureInfo)Thread.CurrentThread.CurrentCulture.Clone();
             CustomCulture.NumberFormat.NumberDecimalSeparator = ".";
             Thread.CurrentThread.CurrentCulture = CustomCulture;
 
             OriginPoint = new Point(0, 0);
             DataContext = this;
-            CollapsibleColumn.ElementStyle = this.FindResource("CollapsibleColumnStyle") as Style;
+            CollapsibleColumn.ElementStyle = FindResource("CollapsibleColumnStyle") as Style;
         }
 
         private void SetScale(double scaleX, double scaleY, double centerX, double centerY)
@@ -42,19 +42,24 @@ namespace SpurGearMechanismCreator
 
             foreach (UIElement Element in GearCanvas.Children)
             {
-                Canvas.SetLeft(Element, (GearCanvas.ActualWidth - centerX * scaleX * 2) / 2 / scaleX);
-                Canvas.SetTop(Element, (GearCanvas.ActualHeight - centerY * scaleY * 2) / 2 / scaleY);
+                Canvas.SetLeft(Element, (GearCanvas.ActualWidth - (centerX * scaleX * 2)) / 2 / scaleX);
+                Canvas.SetTop(Element, (GearCanvas.ActualHeight - (centerY * scaleY * 2)) / 2 / scaleY);
             }
         }
 
         private void OnClick(object sender, RoutedEventArgs e)
         {
-            var Data = DimensionCalculations.Calculate(
-                double.Parse(ModuleTextBox.Text),
-                int.Parse(Z1TextBox.Text),
-                int.Parse(Z2TextBox.Text),
-                double.Parse(X1TextBox.Text),
-                double.Parse(X2TextBox.Text));
+            CalculationsResultsData Data = DimensionCalculations.Calculate(
+                double.Parse(ModuleTextBox.Text, CultureInfo.CurrentCulture),
+                int.Parse(Z1TextBox.Text, CultureInfo.CurrentCulture),
+                int.Parse(Z2TextBox.Text, CultureInfo.CurrentCulture),
+                double.Parse(X1TextBox.Text, CultureInfo.CurrentCulture),
+                double.Parse(X2TextBox.Text, CultureInfo.CurrentCulture));
+
+            if (Data is null || Data.MechanismData is null || Data.GearData is null || Data.PinionData is null || Data.MechanismGeometry is null)
+            {
+                return;
+            }
 
             DataTable.ItemsSource = TableDataVisualisation.GetTableData(Data);
             OriginPoint = new Point(Data.ActionPosition.X, Data.ActionPosition.Y);
@@ -67,10 +72,10 @@ namespace SpurGearMechanismCreator
             GearPointData = Data.GearPoints;
 
             GearCanvas.Children.Clear();
-            foreach (var Element in Data.MechanismGeometry)
+            foreach (UIElement Element in Data.MechanismGeometry)
             {
-                Canvas.SetLeft(Element, (GearCanvas.ActualWidth - Data.ActionPosition.X * 2) / 2);
-                Canvas.SetTop(Element, (GearCanvas.ActualHeight - Data.ActionPosition.Y * 2) / 2);
+                Canvas.SetLeft(Element, (GearCanvas.ActualWidth - (Data.ActionPosition.X * 2)) / 2);
+                Canvas.SetTop(Element, (GearCanvas.ActualHeight - (Data.ActionPosition.Y * 2)) / 2);
                 GearCanvas.Children.Add(Element);
             }
 
@@ -87,19 +92,19 @@ namespace SpurGearMechanismCreator
 
         private void OnStartButtonClick(object sender, RoutedEventArgs e)
         {
-            var Time = 60;
+            int Time = 60;
 
-            var InitializeTransformPinion = new RotateTransform { CenterX = PinionPosition.X, CenterY = PinionPosition.Y };
+            RotateTransform InitializeTransformPinion = new() { CenterX = PinionPosition.X, CenterY = PinionPosition.Y };
             GearCanvas.Children[^2].RenderTransform = InitializeTransformPinion;
 
-            var InitializeTransformGear = new RotateTransform { CenterX = GearPosition.X, CenterY = GearPosition.Y };
+            RotateTransform InitializeTransformGear = new() { CenterX = GearPosition.X, CenterY = GearPosition.Y };
             GearCanvas.Children[^1].RenderTransform = InitializeTransformGear;
 
-            var PinionAnimation = new DoubleAnimation(0, 360, new Duration(TimeSpan.FromSeconds(Time)));
+            DoubleAnimation PinionAnimation = new(0, 360, new Duration(TimeSpan.FromSeconds(Time)));
             GearCanvas.Children[^2]
                 .RenderTransform.BeginAnimation(RotateTransform.AngleProperty, PinionAnimation);
 
-            var GearAnimation = new DoubleAnimation(360 / GearRatio, 0, new Duration(TimeSpan.FromSeconds(Time)));
+            DoubleAnimation GearAnimation = new(360 / GearRatio, 0, new Duration(TimeSpan.FromSeconds(Time)));
             GearCanvas.Children[^1]
                 .RenderTransform.BeginAnimation(RotateTransform.AngleProperty, GearAnimation);
         }
@@ -115,19 +120,21 @@ namespace SpurGearMechanismCreator
 
         private void OnExportPinionClick(object sender, RoutedEventArgs e)
         {
-            if (PinionPointData == null)
+            if (PinionPointData is null || this is null)
+            {
                 return;
+            }
 
-			var dialog = new VistaSaveFileDialog
-			{
-				Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*",
-				DefaultExt = "txt",
-				OverwritePrompt = true
-			};
+            SaveFileDialog dialog = new()
+            {
+                Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*",
+                DefaultExt = "txt",
+                OverwritePrompt = true
+            };
 
-			if ((bool) dialog.ShowDialog(this))
-			{
-                File.WriteAllText(dialog.FileName, 
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                File.WriteAllText(dialog.FileName,
                     ExportData.GenerateTxtData(PinionPointData));
             }
         }
@@ -135,16 +142,18 @@ namespace SpurGearMechanismCreator
         private void OnExportGearClick(object sender, RoutedEventArgs e)
         {
             if (GearPointData == null)
+            {
                 return;
+            }
 
-			var dialog = new VistaSaveFileDialog
-			{
-				Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*",
-				DefaultExt = "txt",
-				OverwritePrompt = true
-			};
+            SaveFileDialog dialog = new()
+            {
+                Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*",
+                DefaultExt = "txt",
+                OverwritePrompt = true
+            };
 
-			if ((bool) dialog.ShowDialog(this))
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
                 File.WriteAllText(dialog.FileName,
                     ExportData.GenerateTxtData(GearPointData));
